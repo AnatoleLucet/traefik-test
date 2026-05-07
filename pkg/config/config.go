@@ -10,11 +10,17 @@ type Config struct {
 type Server struct {
 	Host  string `yaml:"host"`
 	Ports Ports  `yaml:"ports"`
+	TLS   TLS    `yaml:"tls"`
 }
 
 type Ports struct {
 	HTTP  string `yaml:"http"`
 	HTTPS string `yaml:"https"`
+}
+
+type TLS struct {
+	Key  string `yaml:"key"`
+	Cert string `yaml:"cert"`
 }
 
 // ---- Rule ----
