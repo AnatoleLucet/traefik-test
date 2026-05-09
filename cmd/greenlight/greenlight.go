@@ -47,10 +47,7 @@ func NewApp(cfg config.Config) (*App, error) {
 		proxy: proxy.New(),
 	}
 
-	rules, err := router.Compiler{
-		Cache: app.cache,
-		Proxy: app.proxy,
-	}.CompileMany(cfg.Rules)
+	rules, err := router.Compiler{Cache: app.cache, Proxy: app.proxy}.CompileRules(cfg.Rules)
 	if err != nil {
 		return nil, err
 	}

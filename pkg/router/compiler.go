@@ -23,7 +23,7 @@ type Compiler struct {
 	Proxy *proxy.Proxy
 }
 
-func (c Compiler) Compile(rule config.Rule) (CompiledRule, error) {
+func (c Compiler) CompileRule(rule config.Rule) (CompiledRule, error) {
 	handler, err := c.compileHandler(rule)
 	if err != nil {
 		return CompiledRule{}, fmt.Errorf("%w: %w", ErrCompileHandler, err)
@@ -40,10 +40,10 @@ func (c Compiler) Compile(rule config.Rule) (CompiledRule, error) {
 	}, nil
 }
 
-func (c Compiler) CompileMany(rules []config.Rule) ([]CompiledRule, error) {
+func (c Compiler) CompileRules(rules []config.Rule) ([]CompiledRule, error) {
 	var compiled []CompiledRule
 	for _, rule := range rules {
-		cmp, err := c.Compile(rule)
+		cmp, err := c.CompileRule(rule)
 		if err != nil {
 			return nil, err
 		}
