@@ -1,15 +1,29 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/AnatoleLucet/traefik-test/pkg/proxy"
 )
 
-func Forward(upstream string, proxy *proxy.Proxy) http.Handler {
+func Forward(upstream string, p *proxy.Proxy) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// proxy.ForwardHTTP(w, r, target)
-		fmt.Fprintf(w, "Forwarding to %s\n", upstream)
+		target := buildTarget(upstream, r)
+		p.Forward(target, w, r)
 	})
+}
+
+func buildTarget(upstream string, r *http.Request) string {
+	scheme, host, hasScheme := strings.Cut(upstream, "://")
+	if !hasScheme {
+		host = scheme
+		if r.TLS != nil {
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
+	}
+
+	return scheme + "://" + host
 }

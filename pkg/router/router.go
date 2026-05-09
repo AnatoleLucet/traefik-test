@@ -35,7 +35,7 @@ func New(rules []CompiledRule) *Router {
 	})
 
 	// store the rules as an soa to gain a few cycles by not pulling the
-	// whole config.Rule struct in cache lines when iterating to find a match.
+	// whole CompiledRule struct in cache lines when iterating to find a match.
 	hosts := make([][]string, len(rules))
 	paths := make([][]string, len(rules))
 	methods := make([][]string, len(rules))
@@ -69,7 +69,6 @@ func (r *Router) Match(req Request) (CompiledRule, bool) {
 	return CompiledRule{}, false
 }
 
-// "www.example.com" -> ["com", "example", "www"]
 func splitHost(host string) []string {
 	trimmed := strings.Trim(host, ".")
 	if trimmed == "" {
@@ -81,7 +80,6 @@ func splitHost(host string) []string {
 	return segements
 }
 
-// "/users/*/friends" -> ["users", "*", "friends"]
 func splitPath(path string) []string {
 	trimmed := strings.Trim(path, "/")
 	if trimmed == "" {
@@ -91,7 +89,6 @@ func splitPath(path string) []string {
 	return strings.Split(trimmed, "/")
 }
 
-// "GET,POST" -> ["GET", "POST"]
 func splitMethod(method string) []string {
 	trimmed := strings.Trim(method, ",")
 	if trimmed == "" {
@@ -144,8 +141,6 @@ func matchSegments(source, target []string) bool {
 	return si == len(source) && ti == len(target)
 }
 
-// checks if source is in the list of allowed methods
-// e.g. source "GET" matches target ["GET", "POST"] but not ["POST", "PUT"]
 func matchMethod(source string, target []string) bool {
 	if len(target) == 0 {
 		return true // no constraints
@@ -154,7 +149,6 @@ func matchMethod(source string, target []string) bool {
 	return slices.Contains(target, source)
 }
 
-// calculates the specificity score of a rule. higher score means more specific.
 func specificity(rule config.Rule) int {
 	score := 0
 
