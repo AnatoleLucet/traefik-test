@@ -1,6 +1,7 @@
 package router
 
 import (
+	"net"
 	"slices"
 	"strings"
 
@@ -73,6 +74,11 @@ func splitHost(host string) []string {
 	trimmed := strings.Trim(host, ".")
 	if trimmed == "" {
 		return nil
+	}
+
+	host, _, err := net.SplitHostPort(trimmed) // remove port if any
+	if err == nil {
+		trimmed = host
 	}
 
 	segements := strings.Split(trimmed, ".")

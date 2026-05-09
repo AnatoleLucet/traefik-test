@@ -149,6 +149,29 @@ func TestRouter_Match(t *testing.T) {
 		assert.Equal(t, rules[2], rule)
 	})
 
+	t.Run("skips port", func(t *testing.T) {
+		rules := []CompiledRule{
+			{
+				Rule: config.Rule{
+					If:   config.If{Host: "example.com"},
+					Then: config.Then{Forward: "http://localhost:8080"},
+				},
+			},
+			{
+				Rule: config.Rule{
+					If:   config.If{Host: "www.example.com"},
+					Then: config.Then{Forward: "http://localhost:8090"},
+				},
+			},
+		}
+
+		rtr := New(rules)
+		rule, ok := rtr.Match(Request{Host: "www.example.com:8070"}) // port should be ignored
+
+		assert.True(t, ok)
+		assert.Equal(t, rules[1], rule)
+	})
+
 	t.Run("no match", func(t *testing.T) {
 		rules := []CompiledRule{
 			{
