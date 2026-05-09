@@ -17,12 +17,12 @@ type HTTPSEntrypoint struct {
 	server *http.Server
 }
 
-func NewHTTPSEntrypoint(cfg config.Server, handler http.HandlerFunc) *HTTPSEntrypoint {
+func NewHTTPSEntrypoint(cfg config.Server, handler http.Handler) *HTTPSEntrypoint {
 	return &HTTPSEntrypoint{
 		key:  cfg.TLS.Key,
 		cert: cfg.TLS.Cert,
 		server: &http.Server{
-			Addr:    net.JoinHostPort(cfg.Host, cfg.Ports.HTTPS),
+			Addr:    net.JoinHostPort(cfg.Host, string(cfg.Ports.HTTPS)),
 			Handler: handler,
 		},
 	}

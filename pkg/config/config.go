@@ -14,14 +14,22 @@ type Server struct {
 }
 
 type Ports struct {
-	HTTP  string `yaml:"http"`
-	HTTPS string `yaml:"https"`
+	HTTP  HTTP  `yaml:"http"`
+	HTTPS HTTPS `yaml:"https"`
 }
 
 type TLS struct {
 	Key  string `yaml:"key"`
 	Cert string `yaml:"cert"`
 }
+
+type HTTP string
+
+func (p HTTP) Enabled() bool { return p != "" }
+
+type HTTPS string
+
+func (p HTTPS) Enabled() bool { return p != "" }
 
 // ---- Rule ----
 
@@ -38,25 +46,37 @@ type If struct {
 }
 
 type Then struct {
-	Forward  string  `yaml:"forward"`
-	Redirect string  `yaml:"redirect"`
-	Respond  Respond `yaml:"respond"`
+	Forward  Forward  `yaml:"forward"`
+	Redirect Redirect `yaml:"redirect"`
+	Respond  Respond  `yaml:"respond"`
 }
 
 type Middleware struct {
 	Cache Cache `yaml:"cache"`
 }
 
-// ---- Actions ----
+// ---- Handlers ----
+
+type Forward string
+
+func (f Forward) Enabled() bool { return f != "" }
+
+type Redirect string
+
+func (r Redirect) Enabled() bool { return r != "" }
 
 type Respond struct {
-	Status int               `yaml:"status"`
-	Body   string            `yaml:"body"`
-	Header map[string]string `yaml:"header"`
+	Status  int               `yaml:"status"`
+	Body    string            `yaml:"body"`
+	Headers map[string]string `yaml:"headers"`
 }
+
+func (r Respond) Enabled() bool { return r.Status != 0 || r.Body != "" || len(r.Headers) > 0 }
 
 // ---- Middlewares ----
 
 type Cache struct {
 	TTL string `yaml:"ttl"`
 }
+
+func (c Cache) Enabled() bool { return c.TTL != "" }

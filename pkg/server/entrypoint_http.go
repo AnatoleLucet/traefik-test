@@ -14,10 +14,10 @@ type HTTPEntrypoint struct {
 	server *http.Server
 }
 
-func NewHTTPEntrypoint(cfg config.Server, handler http.HandlerFunc) *HTTPEntrypoint {
+func NewHTTPEntrypoint(cfg config.Server, handler http.Handler) *HTTPEntrypoint {
 	return &HTTPEntrypoint{
 		server: &http.Server{
-			Addr:    net.JoinHostPort(cfg.Host, cfg.Ports.HTTP),
+			Addr:    net.JoinHostPort(cfg.Host, string(cfg.Ports.HTTP)),
 			Handler: handler,
 		},
 	}

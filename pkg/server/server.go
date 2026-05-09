@@ -6,11 +6,6 @@ import (
 	"time"
 )
 
-type Entrypoint interface {
-	Serve() error
-	Shutdown(ctx context.Context) error
-}
-
 // Server orchestrates the lifecycle of multiple entrypoints (protocols).
 type Server struct {
 	entrypoints []Entrypoint

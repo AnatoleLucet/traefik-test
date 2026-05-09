@@ -19,19 +19,19 @@ type Request struct {
 
 // Router is responsible for finding the correct rule to apply for a given request.
 type Router struct {
-	rules   []config.Rule // [i]rule
-	hosts   [][]string    // [i][sub, domain, com]
-	paths   [][]string    // [i][user, *, friends]
-	methods [][]string    // [i][GET, POST, PUT]
+	rules   []CompiledRule // [i]rule
+	hosts   [][]string     // [i][sub, domain, com]
+	paths   [][]string     // [i][user, *, friends]
+	methods [][]string     // [i][GET, POST, PUT]
 }
 
-func New(rules []config.Rule) *Router {
+func New(rules []CompiledRule) *Router {
 	// rules are sorted by specificity.
 	// if multiple rules match the given request, the rule with the most specificity
 	// will win (e.g. a `path+method` condition with always win over a single `path` condition).
 	rules = slices.Clone(rules)
-	slices.SortStableFunc(rules, func(a, b config.Rule) int {
-		return specificity(b) - specificity(a)
+	slices.SortStableFunc(rules, func(a, b CompiledRule) int {
+		return specificity(b.Rule) - specificity(a.Rule)
 	})
 
 	// store the rules as an soa to gain a few cycles by not pulling the
@@ -40,9 +40,9 @@ func New(rules []config.Rule) *Router {
 	paths := make([][]string, len(rules))
 	methods := make([][]string, len(rules))
 	for i, rule := range rules {
-		hosts[i] = splitHost(rule.If.Host)
-		paths[i] = splitPath(rule.If.Path)
-		methods[i] = splitMethod(rule.If.Method)
+		hosts[i] = splitHost(rule.Rule.If.Host)
+		paths[i] = splitPath(rule.Rule.If.Path)
+		methods[i] = splitMethod(rule.Rule.If.Method)
 	}
 
 	return &Router{
@@ -54,7 +54,7 @@ func New(rules []config.Rule) *Router {
 }
 
 // Match finds the rule that matches best the given request.
-func (r *Router) Match(req Request) (config.Rule, bool) {
+func (r *Router) Match(req Request) (CompiledRule, bool) {
 	host := splitHost(req.Host)
 	path := splitPath(req.Path)
 
@@ -66,7 +66,7 @@ func (r *Router) Match(req Request) (config.Rule, bool) {
 		}
 	}
 
-	return config.Rule{}, false
+	return CompiledRule{}, false
 }
 
 // "www.example.com" -> ["com", "example", "www"]

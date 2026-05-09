@@ -9,14 +9,18 @@ import (
 
 func TestRouter_Match(t *testing.T) {
 	t.Run("matche by host", func(t *testing.T) {
-		rules := []config.Rule{
+		rules := []CompiledRule{
 			{
-				If:   config.If{Host: "example.com", Path: "/users/*/friends", Method: "GET"},
-				Then: config.Then{Forward: "http://localhost:8080"},
+				Rule: config.Rule{
+					If:   config.If{Host: "example.com", Path: "/users/*/friends", Method: "GET"},
+					Then: config.Then{Forward: "http://localhost:8080"},
+				},
 			},
 			{
-				If:   config.If{Host: "www.example.com", Path: "/users/*/friends", Method: "GET"},
-				Then: config.Then{Forward: "http://localhost:8090"},
+				Rule: config.Rule{
+					If:   config.If{Host: "www.example.com", Path: "/users/*/friends", Method: "GET"},
+					Then: config.Then{Forward: "http://localhost:8090"},
+				},
 			},
 		}
 
@@ -28,14 +32,18 @@ func TestRouter_Match(t *testing.T) {
 	})
 
 	t.Run("match by path", func(t *testing.T) {
-		rules := []config.Rule{
+		rules := []CompiledRule{
 			{
-				If:   config.If{Host: "example.com", Path: "/users/*/friends", Method: "GET"},
-				Then: config.Then{Forward: "http://localhost:8080"},
+				Rule: config.Rule{
+					If:   config.If{Host: "example.com", Path: "/users/*/friends", Method: "GET"},
+					Then: config.Then{Forward: "http://localhost:8080"},
+				},
 			},
 			{
-				If:   config.If{Host: "example.com", Path: "/users/*/profile", Method: "GET"},
-				Then: config.Then{Forward: "http://localhost:8090"},
+				Rule: config.Rule{
+					If:   config.If{Host: "example.com", Path: "/users/*/profile", Method: "GET"},
+					Then: config.Then{Forward: "http://localhost:8090"},
+				},
 			},
 		}
 
@@ -47,14 +55,18 @@ func TestRouter_Match(t *testing.T) {
 	})
 
 	t.Run("match by method", func(t *testing.T) {
-		rules := []config.Rule{
+		rules := []CompiledRule{
 			{
-				If:   config.If{Host: "example.com", Path: "/users/*/friends", Method: "GET"},
-				Then: config.Then{Forward: "http://localhost:8080"},
+				Rule: config.Rule{
+					If:   config.If{Host: "example.com", Path: "/users/*/friends", Method: "GET"},
+					Then: config.Then{Forward: "http://localhost:8080"},
+				},
 			},
 			{
-				If:   config.If{Host: "example.com", Path: "/users/*/friends", Method: "POST"},
-				Then: config.Then{Forward: "http://localhost:8090"},
+				Rule: config.Rule{
+					If:   config.If{Host: "example.com", Path: "/users/*/friends", Method: "POST"},
+					Then: config.Then{Forward: "http://localhost:8090"},
+				},
 			},
 		}
 
@@ -66,22 +78,30 @@ func TestRouter_Match(t *testing.T) {
 	})
 
 	t.Run("match by host path and method", func(t *testing.T) {
-		rules := []config.Rule{
+		rules := []CompiledRule{
 			{
-				If:   config.If{Host: "example.com", Path: "/users/*/profile", Method: "POST"},
-				Then: config.Then{Forward: "http://localhost:8080"},
+				Rule: config.Rule{
+					If:   config.If{Host: "example.com", Path: "/users/*/profile", Method: "POST"},
+					Then: config.Then{Forward: "http://localhost:8080"},
+				},
 			},
 			{
-				If:   config.If{Host: "www.example.com", Path: "/users/*/friends", Method: "POST"},
-				Then: config.Then{Forward: "http://localhost:8080"},
+				Rule: config.Rule{
+					If:   config.If{Host: "www.example.com", Path: "/users/*/friends", Method: "POST"},
+					Then: config.Then{Forward: "http://localhost:8080"},
+				},
 			},
 			{
-				If:   config.If{Host: "example.com", Path: "/users/*/profile", Method: "GET"},
-				Then: config.Then{Forward: "http://localhost:8080"},
+				Rule: config.Rule{
+					If:   config.If{Host: "example.com", Path: "/users/*/profile", Method: "GET"},
+					Then: config.Then{Forward: "http://localhost:8080"},
+				},
 			},
 			{
-				If:   config.If{Host: "www.example.com", Path: "/users/*/profile", Method: "POST"},
-				Then: config.Then{Forward: "http://localhost:8090"},
+				Rule: config.Rule{
+					If:   config.If{Host: "www.example.com", Path: "/users/*/profile", Method: "POST"},
+					Then: config.Then{Forward: "http://localhost:8090"},
+				},
 			},
 		}
 
@@ -93,24 +113,32 @@ func TestRouter_Match(t *testing.T) {
 	})
 
 	t.Run("match by specificity", func(t *testing.T) {
-		rules := []config.Rule{
+		rules := []CompiledRule{
 			{
-				If:   config.If{Host: "www.example.com"},
-				Then: config.Then{Forward: "http://localhost:8080"},
+				Rule: config.Rule{
+					If:   config.If{Host: "www.example.com"},
+					Then: config.Then{Forward: "http://localhost:8080"},
+				},
 			},
 			{
-				If:   config.If{Host: "www.example.com", Path: "/users/*/profile"},
-				Then: config.Then{Forward: "http://localhost:8080"},
+				Rule: config.Rule{
+					If:   config.If{Host: "www.example.com", Path: "/users/*/profile"},
+					Then: config.Then{Forward: "http://localhost:8080"},
+				},
 			},
 			{
-				If:   config.If{Host: "www.example.com", Path: "/users/*/profile", Method: "POST"},
-				Then: config.Then{Forward: "http://localhost:8090"},
+				Rule: config.Rule{
+					If:   config.If{Host: "www.example.com", Path: "/users/*/profile", Method: "POST"},
+					Then: config.Then{Forward: "http://localhost:8090"},
+				},
 			},
 			// also a prefect match like above. used to make sure natural order is preserved.
 			// only the rule above should match. not this one.
 			{
-				If:   config.If{Host: "www.example.com", Path: "/users/*/profile", Method: "POST"},
-				Then: config.Then{Forward: "http://localhost:8070"},
+				Rule: config.Rule{
+					If:   config.If{Host: "www.example.com", Path: "/users/*/profile", Method: "POST"},
+					Then: config.Then{Forward: "http://localhost:8070"},
+				},
 			},
 		}
 
@@ -122,14 +150,18 @@ func TestRouter_Match(t *testing.T) {
 	})
 
 	t.Run("no match", func(t *testing.T) {
-		rules := []config.Rule{
+		rules := []CompiledRule{
 			{
-				If:   config.If{Host: "example.com", Path: "/users/*/profile", Method: "POST"},
-				Then: config.Then{Forward: "http://localhost:8080"},
+				Rule: config.Rule{
+					If:   config.If{Host: "example.com", Path: "/users/*/profile", Method: "POST"},
+					Then: config.Then{Forward: "http://localhost:8080"},
+				},
 			},
 			{
-				If:   config.If{Host: "www.example.com", Path: "/users/*/friends", Method: "POST"},
-				Then: config.Then{Forward: "http://localhost:8090"},
+				Rule: config.Rule{
+					If:   config.If{Host: "www.example.com", Path: "/users/*/friends", Method: "POST"},
+					Then: config.Then{Forward: "http://localhost:8090"},
+				},
 			},
 		}
 
@@ -137,7 +169,7 @@ func TestRouter_Match(t *testing.T) {
 		rule, ok := rtr.Match(Request{Host: "www.example.com", Path: "/users/123/profile", Method: "POST"})
 
 		assert.False(t, ok)
-		assert.Equal(t, config.Rule{}, rule)
+		assert.Equal(t, CompiledRule{}, rule)
 	})
 }
 

@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/AnatoleLucet/traefik-test/pkg/cache"
 	"github.com/AnatoleLucet/traefik-test/pkg/config"
+	"github.com/AnatoleLucet/traefik-test/pkg/proxy"
 	"github.com/AnatoleLucet/traefik-test/pkg/router"
 	"github.com/AnatoleLucet/traefik-test/pkg/server"
 )
@@ -17,7 +19,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := NewApp(cfg)
+	app, err := NewApp(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize app: %v\n", err)
+		os.Exit(1)
+	}
 
 	err = app.Serve()
 	if err != nil {
@@ -28,27 +34,38 @@ func main() {
 }
 
 type App struct {
-	router *router.Router
-	// cache *cache.Cache
+	cache *cache.Cache
+	proxy *proxy.Proxy
 
+	router *router.Router
 	server *server.Server
 }
 
-func NewApp(cfg config.Config) *App {
-	app := &App{}
+func NewApp(cfg config.Config) (*App, error) {
+	app := &App{
+		cache: cache.New(),
+		proxy: proxy.New(),
+	}
+
+	rules, err := router.Compiler{
+		Cache: app.cache,
+		Proxy: app.proxy,
+	}.CompileMany(cfg.Rules)
+	if err != nil {
+		return nil, err
+	}
+	app.router = router.New(rules)
 
 	var entrypoints []server.Entrypoint
-	if cfg.Server.Ports.HTTP != "" {
-		entrypoints = append(entrypoints, server.NewHTTPEntrypoint(cfg.Server, app.HandleHTTP))
+	if cfg.Server.Ports.HTTP.Enabled() {
+		entrypoints = append(entrypoints, server.NewHTTPEntrypoint(cfg.Server, app))
 	}
-	if cfg.Server.Ports.HTTPS != "" {
-		entrypoints = append(entrypoints, server.NewHTTPSEntrypoint(cfg.Server, app.HandleHTTP))
+	if cfg.Server.Ports.HTTPS.Enabled() {
+		entrypoints = append(entrypoints, server.NewHTTPSEntrypoint(cfg.Server, app))
 	}
-
-	app.router = router.New(cfg.Rules)
 	app.server = server.New(entrypoints)
 
-	return app
+	return app, nil
 }
 
 func (app *App) Serve() error {
@@ -59,16 +76,16 @@ func (app *App) Shutdown() error {
 	return app.server.Shutdown()
 }
 
-func (app *App) HandleHTTP(w http.ResponseWriter, r *http.Request) {
-	rule, ok := app.router.Match(router.Request{
+func (app *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	rl, ok := app.router.Match(router.Request{
 		Host:   r.Host,
 		Path:   r.URL.Path,
 		Method: r.Method,
 	})
-
-	if ok {
-		fmt.Fprintf(w, "Matched rule: %+v", rule)
-	} else {
+	if !ok {
 		http.Error(w, "Bad Gateway", http.StatusBadGateway)
+		return
 	}
+
+	rl.Handler.ServeHTTP(w, r)
 }
