@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const janitorInterval = time.Minute
+
 type Entry struct {
 	Status  int
 	Body    []byte
@@ -16,22 +18,25 @@ type Entry struct {
 }
 
 type Cache struct {
-	mu      sync.RWMutex
-	entries map[string]Entry
+	entries sync.Map
 }
 
 func New() *Cache {
-	return &Cache{
-		entries: make(map[string]Entry),
-	}
+	c := &Cache{}
+
+	go c.janitor(janitorInterval)
+	return c
 }
 
 func (c *Cache) Get(key string) (Entry, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	val, ok := c.entries.Load(key)
+	if !ok {
+		return Entry{}, false
+	}
 
-	entry, ok := c.entries[key]
-	if !ok || time.Now().After(entry.ExpiresAt) {
+	entry := val.(Entry)
+	if time.Now().After(entry.ExpiresAt) {
+		c.entries.Delete(key)
 		return Entry{}, false
 	}
 
@@ -39,7 +44,17 @@ func (c *Cache) Get(key string) (Entry, bool) {
 }
 
 func (c *Cache) Set(key string, entry Entry) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.entries[key] = entry
+	c.entries.Store(key, entry)
+}
+
+func (c *Cache) janitor(interval time.Duration) {
+	for range time.Tick(interval) {
+		c.entries.Range(func(k, v any) bool {
+			if time.Now().After(v.(Entry).ExpiresAt) {
+				c.entries.Delete(k)
+			}
+
+			return true
+		})
+	}
 }
