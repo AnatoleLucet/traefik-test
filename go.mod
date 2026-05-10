@@ -5,6 +5,7 @@ go 1.26.2
 require (
 	github.com/goccy/go-yaml v1.19.2
 	github.com/stretchr/testify v1.11.1
+	golang.org/x/sync v0.20.0
 )
 
 require (

@@ -3,48 +3,59 @@ package middleware
 import (
 	"maps"
 	"net/http"
+	"slices"
 	"strconv"
-	"strings"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"github.com/AnatoleLucet/traefik-test/pkg/cache"
+	"github.com/AnatoleLucet/traefik-test/pkg/header"
 )
 
 // Cache is a simple TTL cache middleware.
 func Cache(next http.Handler, ttl time.Duration, ch *cache.Cache) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// always assume its a miss until we know otherwise
-		w.Header().Set("X-Cache", "MISS")
+	var group singleflight.Group
 
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !isRequestCacheable(r) {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		key := r.Method + " " + r.URL.String()
-		if cached, ok := ch.Get(key); ok {
-			age := int(time.Since(cached.CreatedAt).Seconds())
+		// always assume its a miss until we know otherwise
+		w.Header().Set("X-Cache", "MISS")
 
-			maps.Copy(w.Header(), cached.Headers)
-			w.Header().Set("X-Cache", "HIT")
-			w.Header().Set("Age", strconv.Itoa(age))
-
-			w.WriteHeader(cached.Status)
-			w.Write(cached.Body)
+		if entry, ok := ch.Get(r); ok {
+			writeEntry(w, entry)
 			return
 		}
 
-		rr := newResponseRecorder(w)
-		next.ServeHTTP(rr, r)
+		served := false // check if we're the one serving the request or if another goroutine already did
+		v, _, _ := group.Do(r.Method+" "+r.URL.String(), func() (any, error) {
+			served = true
 
-		if isResponseCacheable(rr.Status(), rr.Header()) {
-			ch.Set(key, cache.Entry{
+			rr := newResponseRecorder(w)
+			next.ServeHTTP(rr, r)
+
+			entry := cache.Entry{
+				Vary:      rr.Header().Get("Vary"),
 				Body:      rr.Body(),
 				Status:    rr.Status(),
-				Headers:   rr.Header().Clone(),
+				Headers:   header.StripHopHeaders(rr.Header().Clone()),
 				CreatedAt: time.Now(),
 				ExpiresAt: time.Now().Add(ttl),
-			})
+			}
+
+			if isResponseCacheable(rr.Status(), rr.Header()) {
+				ch.Store(r, entry)
+			}
+
+			return entry, nil
+		})
+
+		if !served {
+			flushEntry(w, v.(cache.Entry))
 		}
 	})
 }
@@ -54,8 +65,8 @@ func isRequestCacheable(r *http.Request) bool {
 		return false
 	}
 
-	cc := r.Header.Get("Cache-Control")
-	if strings.Contains(cc, "no-cache") {
+	cc := header.Split(r.Header.Get("Cache-Control"))
+	if slices.Contains(cc, "no-cache") || slices.Contains(cc, "no-store") {
 		return false
 	}
 
@@ -63,15 +74,14 @@ func isRequestCacheable(r *http.Request) bool {
 }
 
 func isResponseCacheable(status int, headers http.Header) bool {
-	// vary unsupported for now
-	if headers.Get("Vary") != "" {
+	if headers.Get("Vary") == "*" {
 		return false
 	}
 
-	cc := headers.Get("Cache-Control")
-	if strings.Contains(cc, "no-cache") ||
-		strings.Contains(cc, "no-store") ||
-		strings.Contains(cc, "private") {
+	cc := header.Split(headers.Get("Cache-Control"))
+	if slices.Contains(cc, "no-cache") ||
+		slices.Contains(cc, "no-store") ||
+		slices.Contains(cc, "private") {
 		return false
 	}
 
@@ -80,4 +90,21 @@ func isResponseCacheable(status int, headers http.Header) bool {
 	}
 
 	return true
+}
+
+func writeEntry(w http.ResponseWriter, entry cache.Entry) {
+	age := int(time.Since(entry.CreatedAt).Seconds())
+
+	maps.Copy(w.Header(), entry.Headers)
+	w.Header().Set("X-Cache", "HIT")
+	w.Header().Set("Age", strconv.Itoa(age))
+
+	w.WriteHeader(entry.Status)
+	w.Write(entry.Body)
+}
+
+func flushEntry(w http.ResponseWriter, entry cache.Entry) {
+	maps.Copy(w.Header(), entry.Headers)
+	w.WriteHeader(entry.Status)
+	w.Write(entry.Body)
 }

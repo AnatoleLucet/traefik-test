@@ -71,7 +71,7 @@ func (r *Router) Match(req Request) (CompiledRule, bool) {
 }
 
 func splitHost(host string) []string {
-	trimmed := strings.Trim(host, ".")
+	trimmed := strings.Trim(strings.ToLower(host), ".")
 	if trimmed == "" {
 		return nil
 	}
@@ -96,7 +96,7 @@ func splitPath(path string) []string {
 }
 
 func splitMethod(method string) []string {
-	trimmed := strings.Trim(method, ",")
+	trimmed := strings.Trim(strings.ToUpper(method), ",")
 	if trimmed == "" {
 		return nil
 	}
