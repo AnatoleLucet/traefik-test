@@ -11,7 +11,7 @@ import (
 const defaultConfigPath = "greenlight.yml"
 
 func Load() (Config, error) {
-	pth := os.Getenv("CONFIG_PATH")
+	pth := os.Getenv("GREENLIGHT_CONFIG")
 	if pth == "" {
 		pth = defaultConfigPath
 	}

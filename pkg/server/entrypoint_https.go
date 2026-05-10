@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/AnatoleLucet/traefik-test/pkg/config"
+	"github.com/AnatoleLucet/traefik-test/pkg/logger"
 )
 
 type HTTPSEntrypoint struct {
@@ -29,7 +30,7 @@ func NewHTTPSEntrypoint(cfg config.Server, handler http.Handler) *HTTPSEntrypoin
 }
 
 func (h *HTTPSEntrypoint) Serve() error {
-	fmt.Printf("Starting HTTPS server on \"%s\".\n", h.server.Addr)
+	logger.Infof("Starting HTTPS server on \"%s\".", h.server.Addr)
 
 	err := h.server.ListenAndServeTLS(h.cert, h.key)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -40,7 +41,7 @@ func (h *HTTPSEntrypoint) Serve() error {
 }
 
 func (h *HTTPSEntrypoint) Shutdown(ctx context.Context) error {
-	fmt.Printf("Shutting down HTTPS server.\n")
+	logger.Infof("Shutting down HTTPS server.")
 
 	err := h.server.Shutdown(ctx)
 	if err != nil {

@@ -77,7 +77,7 @@ func (c Compiler) compileMiddlewares(rule config.Rule, handler http.Handler) (ht
 			return nil, fmt.Errorf("%w: %w", ErrInvalidTTL, err)
 		}
 
-		handler = middleware.Cache(ttl, c.Cache, handler)
+		handler = middleware.Cache(handler, ttl, c.Cache)
 	}
 
 	// if rule.Middleware.Logger.Enabled() {

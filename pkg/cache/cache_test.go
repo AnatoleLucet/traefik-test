@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 
 func TestCache_Get(t *testing.T) {
 	t.Run("miss on empty cache", func(t *testing.T) {
-		c := New()
+		c := New(context.Background())
 
 		entry, ok := c.Get("foo")
 
@@ -18,7 +19,7 @@ func TestCache_Get(t *testing.T) {
 	})
 
 	t.Run("hit after set", func(t *testing.T) {
-		c := New()
+		c := New(context.Background())
 		c.Set("foo", Entry{Body: []byte("bar"), ExpiresAt: time.Now().Add(time.Minute)})
 
 		entry, ok := c.Get("foo")
@@ -28,7 +29,7 @@ func TestCache_Get(t *testing.T) {
 	})
 
 	t.Run("miss on expired entry", func(t *testing.T) {
-		c := New()
+		c := New(context.Background())
 		c.Set("foo", Entry{Body: []byte("bar"), ExpiresAt: time.Now().Add(-time.Minute)})
 
 		entry, ok := c.Get("foo")
@@ -41,7 +42,7 @@ func TestCache_Get(t *testing.T) {
 func TestCache_janitor(t *testing.T) {
 	t.Run("removes expired entries periodically", func(t *testing.T) {
 		c := &Cache{}
-		go c.janitor(10 * time.Millisecond)
+		go c.janitor(context.Background(), 10*time.Millisecond)
 		c.Set("foo", Entry{Body: []byte("bar"), ExpiresAt: time.Now().Add(5 * time.Millisecond)})
 
 		entry, ok := c.Get("foo")

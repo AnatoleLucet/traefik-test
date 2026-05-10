@@ -11,7 +11,7 @@ import (
 )
 
 // Cache is a simple TTL cache middleware.
-func Cache(ttl time.Duration, ch *cache.Cache, next http.Handler) http.Handler {
+func Cache(next http.Handler, ttl time.Duration, ch *cache.Cache) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// always assume its a miss until we know otherwise
 		w.Header().Set("X-Cache", "MISS")

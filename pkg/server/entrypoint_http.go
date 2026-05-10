@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/AnatoleLucet/traefik-test/pkg/config"
+	"github.com/AnatoleLucet/traefik-test/pkg/logger"
 )
 
 type HTTPEntrypoint struct {
@@ -24,7 +25,7 @@ func NewHTTPEntrypoint(cfg config.Server, handler http.Handler) *HTTPEntrypoint 
 }
 
 func (h *HTTPEntrypoint) Serve() error {
-	fmt.Printf("Starting HTTP server on \"%s\".\n", h.server.Addr)
+	logger.Infof("Starting HTTP server on \"%s\".", h.server.Addr)
 
 	err := h.server.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -35,7 +36,7 @@ func (h *HTTPEntrypoint) Serve() error {
 }
 
 func (h *HTTPEntrypoint) Shutdown(ctx context.Context) error {
-	fmt.Printf("Shutting down HTTP server.\n")
+	logger.Infof("Shutting down HTTP server.")
 
 	err := h.server.Shutdown(ctx)
 	if err != nil {

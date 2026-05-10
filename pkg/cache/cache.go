@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"net/http"
 	"sync"
 	"time"
@@ -21,10 +22,9 @@ type Cache struct {
 	entries sync.Map
 }
 
-func New() *Cache {
+func New(ctx context.Context) *Cache {
 	c := &Cache{}
-
-	go c.janitor(janitorInterval)
+	go c.janitor(ctx, janitorInterval)
 	return c
 }
 
@@ -47,8 +47,17 @@ func (c *Cache) Set(key string, entry Entry) {
 	c.entries.Store(key, entry)
 }
 
-func (c *Cache) janitor(interval time.Duration) {
-	for range time.Tick(interval) {
+func (c *Cache) janitor(ctx context.Context, interval time.Duration) {
+	t := time.NewTicker(interval)
+	defer t.Stop()
+
+	for range t.C {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
 		c.entries.Range(func(k, v any) bool {
 			if time.Now().After(v.(Entry).ExpiresAt) {
 				c.entries.Delete(k)

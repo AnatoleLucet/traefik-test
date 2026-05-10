@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var hopByHop = []string{
+var hopHeaders = []string{
 	"Connection",
 	"Keep-Alive",
 	"Transfer-Encoding",
@@ -66,7 +66,7 @@ func (p *Proxy) Forward(upstream string, w http.ResponseWriter, r *http.Request)
 }
 
 func removeHopByHop(h http.Header) {
-	for _, key := range hopByHop {
+	for _, key := range hopHeaders {
 		h.Del(key)
 	}
 }

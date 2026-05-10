@@ -1,12 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 	"os"
 
 	"github.com/AnatoleLucet/traefik-test/pkg/cache"
 	"github.com/AnatoleLucet/traefik-test/pkg/config"
+	"github.com/AnatoleLucet/traefik-test/pkg/logger"
 	"github.com/AnatoleLucet/traefik-test/pkg/proxy"
 	"github.com/AnatoleLucet/traefik-test/pkg/router"
 	"github.com/AnatoleLucet/traefik-test/pkg/server"
@@ -15,36 +16,43 @@ import (
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		logger.Errorf("Failed to load config: %v", err)
 		os.Exit(1)
 	}
 
 	app, err := NewApp(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to initialize app: %v\n", err)
+		logger.Errorf("Failed to initialize app: %v", err)
 		os.Exit(1)
 	}
 
 	err = app.Serve()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Stopping server. Cause: %v\n", err)
+		logger.Errorf("Stopping server. Cause: %v", err)
 		app.Shutdown()
 		os.Exit(1)
 	}
 }
 
 type App struct {
-	cache *cache.Cache
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	proxy *proxy.Proxy
+	cache *cache.Cache
 
 	router *router.Router
 	server *server.Server
 }
 
 func NewApp(cfg config.Config) (*App, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	app := &App{
-		cache: cache.New(),
-		proxy: proxy.New(),
+		ctx:    ctx,
+		cancel: cancel,
+		proxy:  proxy.New(),
+		cache:  cache.New(ctx),
 	}
 
 	rules, err := router.Compiler{Cache: app.cache, Proxy: app.proxy}.CompileRules(cfg.Rules)
@@ -70,6 +78,7 @@ func (app *App) Serve() error {
 }
 
 func (app *App) Shutdown() error {
+	app.cancel()
 	return app.server.Shutdown()
 }
 
